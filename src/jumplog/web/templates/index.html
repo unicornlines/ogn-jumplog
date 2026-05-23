@@ -4,72 +4,124 @@
 <meta charset="utf-8">
 <title>jumplog</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://unpkg.com/fundamental-styles@0.41.6/dist/fundamental-styles.css">
+<link rel="stylesheet" href="https://unpkg.com/fundamental-styles@0.41.6/dist/theming/sap_horizon.css">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
-<header>
-  <h1>jumplog</h1>
-  <p class="tagline">Pre-fill a jump-ops log sheet from OGN FLARM data.</p>
+<body class="sap_horizon">
+
+<header class="fd-shellbar">
+  <div class="fd-shellbar__group fd-shellbar__group--product">
+    <a class="fd-shellbar__logo" href="/">
+      <span class="brand-logo">jumplog</span>
+    </a>
+    <div class="fd-shellbar__product">
+      <span class="fd-shellbar__title">Jump-ops log sheet</span>
+    </div>
+  </div>
+  <div class="fd-shellbar__group fd-shellbar__group--actions">
+    <div class="fd-shellbar__action">
+      <span class="fd-shellbar__copilot-label" id="shellbar-status">Ready</span>
+    </div>
+  </div>
 </header>
 
-<section class="card">
-  <form id="meta-form" autocomplete="off">
-    <div class="grid">
-      <label>Callsign
-        <input name="callsign" required placeholder="D-EDGX">
-      </label>
-      <label>Airport (ICAO)
-        <input name="airport" required placeholder="EDGX">
-      </label>
-      <label>Date
-        <input name="date" type="date" required>
-      </label>
-      <label>FLARM ID <span class="hint">(hex, optional)</span>
-        <input name="flarm_id" placeholder="3D0D47">
-      </label>
-      <label>Pilot
-        <input name="pilot" placeholder="Sophie Bertsch">
-      </label>
-      <label>Operator
-        <input name="operator" placeholder="FSC Mannheim">
-      </label>
-      <label>Timezone
-        <select name="tz">
-          <option value="local" selected>Local (airfield)</option>
-          <option value="utc">UTC</option>
-        </select>
-      </label>
-    </div>
-    <div class="actions">
-      <button type="submit" id="fetch-btn">Fetch flights</button>
-      <button type="button" id="add-row-btn" hidden>+ Add lift</button>
-      <button type="button" id="render-btn" hidden>Generate PDF</button>
-    </div>
-  </form>
-  <div id="status" class="status"></div>
-</section>
+<main class="page">
 
-<section class="card" id="table-card" hidden>
-  <table id="lift-table">
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Paxe</th>
-        <th>FL</th>
-        <th>TO</th>
-        <th>LDG</th>
-        <th>Min</th>
-        <th>CYC</th>
-        <th>Temp</th>
-        <th>Fuel gal</th>
-        <th>Refuel l</th>
-        <th>Remarks</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</section>
+  <section class="fd-panel" aria-labelledby="form-title">
+    <div class="fd-panel__header">
+      <h4 class="fd-panel__title" id="form-title">Flight selection</h4>
+    </div>
+    <div class="fd-panel__content">
+      <form id="meta-form" class="fd-form-layout" autocomplete="off">
+        <div class="form-grid">
+          <div class="fd-form-item">
+            <label class="fd-form-label" for="callsign">Callsign <span class="fd-form-label__asterisk" aria-label="Required">*</span></label>
+            <input class="fd-input" type="text" id="callsign" name="callsign" required placeholder="D-EDGX">
+          </div>
+          <div class="fd-form-item">
+            <label class="fd-form-label" for="airport">Airport (ICAO) <span class="fd-form-label__asterisk">*</span></label>
+            <input class="fd-input" type="text" id="airport" name="airport" required placeholder="EDGX">
+          </div>
+          <div class="fd-form-item">
+            <label class="fd-form-label" for="date">Date <span class="fd-form-label__asterisk">*</span></label>
+            <input class="fd-input" type="date" id="date" name="date" required>
+          </div>
+          <div class="fd-form-item">
+            <label class="fd-form-label" for="flarm_id">FLARM ID <span class="muted">(hex, optional)</span></label>
+            <input class="fd-input" type="text" id="flarm_id" name="flarm_id" placeholder="3D0D47">
+          </div>
+          <div class="fd-form-item">
+            <label class="fd-form-label" for="pilot">Pilot</label>
+            <input class="fd-input" type="text" id="pilot" name="pilot" placeholder="Sophie Bertsch">
+          </div>
+          <div class="fd-form-item">
+            <label class="fd-form-label" for="operator">Operator</label>
+            <input class="fd-input" type="text" id="operator" name="operator" placeholder="FSC Mannheim">
+          </div>
+          <div class="fd-form-item">
+            <label class="fd-form-label" for="tz">Timezone</label>
+            <div class="fd-select">
+              <select class="fd-select__control" id="tz" name="tz">
+                <option value="local" selected>Local (airfield)</option>
+                <option value="utc">UTC</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="fd-bar fd-bar--footer">
+          <div class="fd-bar__right">
+            <div class="fd-bar__element">
+              <button type="submit" id="fetch-btn" class="fd-button fd-button--emphasized">
+                <i class="sap-icon--synchronize"></i>
+                <span>Fetch flights</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+      <div id="status" class="status-bar" role="status" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section class="fd-panel" id="table-panel" hidden>
+    <div class="fd-panel__header">
+      <h4 class="fd-panel__title">Lifts</h4>
+      <div class="panel-actions">
+        <button type="button" id="add-row-btn" class="fd-button fd-button--transparent">
+          <i class="sap-icon--add"></i>
+          <span>Add lift</span>
+        </button>
+        <button type="button" id="render-btn" class="fd-button fd-button--emphasized">
+          <i class="sap-icon--pdf-attachment"></i>
+          <span>Generate PDF</span>
+        </button>
+      </div>
+    </div>
+    <div class="fd-panel__content table-wrap">
+      <table class="fd-table fd-table--compact lift-table">
+        <thead class="fd-table__header">
+          <tr class="fd-table__row">
+            <th class="fd-table__cell col-num">#</th>
+            <th class="fd-table__cell">Paxe</th>
+            <th class="fd-table__cell">FL</th>
+            <th class="fd-table__cell">TO</th>
+            <th class="fd-table__cell">LDG</th>
+            <th class="fd-table__cell">Min</th>
+            <th class="fd-table__cell">CYC</th>
+            <th class="fd-table__cell">Temp</th>
+            <th class="fd-table__cell">Fuel gal</th>
+            <th class="fd-table__cell">Refuel l</th>
+            <th class="fd-table__cell col-remarks">Remarks</th>
+            <th class="fd-table__cell col-actions"></th>
+          </tr>
+        </thead>
+        <tbody class="fd-table__body"></tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
 
 <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>

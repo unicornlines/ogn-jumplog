@@ -13,19 +13,21 @@ const FIELDS = [
   { key: "remarks",    cls: "remarks" },
 ];
 
-const form = document.getElementById("meta-form");
-const statusEl = document.getElementById("status");
-const fetchBtn = document.getElementById("fetch-btn");
-const addRowBtn = document.getElementById("add-row-btn");
-const renderBtn = document.getElementById("render-btn");
-const tableCard = document.getElementById("table-card");
-const tbody = document.querySelector("#lift-table tbody");
+const form        = document.getElementById("meta-form");
+const statusEl    = document.getElementById("status");
+const shellStatus = document.getElementById("shellbar-status");
+const fetchBtn    = document.getElementById("fetch-btn");
+const addRowBtn   = document.getElementById("add-row-btn");
+const renderBtn   = document.getElementById("render-btn");
+const tablePanel  = document.getElementById("table-panel");
+const tbody       = document.querySelector(".lift-table tbody");
 
-document.querySelector('input[name="date"]').value = new Date().toISOString().slice(0, 10);
+document.getElementById("date").value = new Date().toISOString().slice(0, 10);
 
 function setStatus(text, kind = "") {
   statusEl.textContent = text || "";
-  statusEl.className = "status" + (kind ? " " + kind : "");
+  statusEl.className = "status-bar" + (kind ? " " + kind : "");
+  if (shellStatus) shellStatus.textContent = text ? text.split(/[.,]/)[0] : "Ready";
 }
 
 function formValues() {
@@ -35,12 +37,13 @@ function formValues() {
   return out;
 }
 
-function makeCell(value, key, cls) {
+function makeCell(value, key, extraCls) {
   const td = document.createElement("td");
+  td.className = "fd-table__cell";
   const inp = document.createElement("input");
   inp.type = "text";
   inp.dataset.key = key;
-  if (cls) inp.className = cls;
+  inp.className = "cell" + (extraCls ? " " + extraCls : "");
   inp.value = value ?? "";
   td.appendChild(inp);
   return td;
@@ -48,29 +51,35 @@ function makeCell(value, key, cls) {
 
 function renumber() {
   Array.from(tbody.children).forEach((tr, i) => {
-    tr.querySelector("td.num").textContent = String(i + 1);
+    tr.querySelector("td.row-num").textContent = String(i + 1);
   });
 }
 
 function addRow(row = {}) {
   const tr = document.createElement("tr");
+  tr.className = "fd-table__row";
+
   const numTd = document.createElement("td");
-  numTd.className = "num";
+  numTd.className = "fd-table__cell row-num";
   tr.appendChild(numTd);
+
   for (const { key, cls } of FIELDS) tr.appendChild(makeCell(row[key], key, cls));
+
   const delTd = document.createElement("td");
-  delTd.className = "actions-cell";
+  delTd.className = "fd-table__cell row-actions";
   const del = document.createElement("button");
   del.type = "button";
-  del.textContent = "x";
-  del.className = "danger";
+  del.className = "row-del";
   del.title = "Delete this lift";
+  del.setAttribute("aria-label", "Delete lift");
+  del.innerHTML = '<i class="sap-icon--decline" aria-hidden="true"></i>';
   del.addEventListener("click", () => {
     tr.remove();
     renumber();
   });
   delTd.appendChild(del);
   tr.appendChild(delTd);
+
   tbody.appendChild(tr);
   renumber();
 }
@@ -79,7 +88,9 @@ function collectRows() {
   const rows = [];
   for (const tr of tbody.children) {
     const row = {};
-    for (const inp of tr.querySelectorAll("input")) row[inp.dataset.key] = inp.value;
+    for (const inp of tr.querySelectorAll("input.cell")) {
+      row[inp.dataset.key] = inp.value;
+    }
     rows.push(row);
   }
   return rows;
@@ -88,9 +99,9 @@ function collectRows() {
 function renderCandidates(cands) {
   if (!cands || !cands.length) return "";
   const top = cands.slice(0, 5).map(c => {
-    const flag = c.jump_pattern ? " (jump pattern)" : "";
-    const reg = c.registration || "(unknown)";
-    return `<li><code>--flarm-id ${c.address}</code> reg=${reg}, ${c.aircraft || "?"}, ${c.flight_count} flights, peak ${c.peak_alt_ft} ft${flag}</li>`;
+    const flag = c.jump_pattern ? " — jump pattern" : "";
+    const reg  = c.registration || "(unknown)";
+    return `<li><code>--flarm-id ${c.address}</code> &middot; ${reg} &middot; ${c.aircraft || "?"} &middot; ${c.flight_count} flights, peak ${c.peak_alt_ft} ft${flag}</li>`;
   }).join("");
   return `<div class="candidates">OGN saw these devices today — pick one and rerun:<ul>${top}</ul></div>`;
 }
@@ -109,16 +120,13 @@ fetchBtn.addEventListener("click", async (e) => {
     });
     const data = await resp.json();
     if (!resp.ok) {
-      const extra = renderCandidates(data.candidates);
       setStatus(data.error || `HTTP ${resp.status}`, "error");
-      statusEl.insertAdjacentHTML("beforeend", extra);
+      statusEl.insertAdjacentHTML("beforeend", renderCandidates(data.candidates));
       return;
     }
     tbody.innerHTML = "";
     for (const r of data.lifts) addRow(r);
-    tableCard.hidden = false;
-    addRowBtn.hidden = false;
-    renderBtn.hidden = false;
+    tablePanel.hidden = false;
     setStatus(`Loaded ${data.lifts.length} lift(s) from ${data.airfield || vals.airport}.`, "ok");
   } catch (err) {
     setStatus("Network error: " + err.message, "error");
@@ -146,8 +154,8 @@ renderBtn.addEventListener("click", async () => {
       return;
     }
     const blob = await resp.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
     a.href = url;
     a.download = `logsheet_${vals.airport}_${vals.callsign}_${vals.date}.pdf`;
     document.body.appendChild(a);
