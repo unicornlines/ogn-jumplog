@@ -60,12 +60,30 @@ html, body {
   font-size: var(--sapFontSize, 0.875rem);
 }
 
-.brand-logo {
+.brand-logo-img {
+  height: 26px;
+  width: auto;
+  display: block;
+  /* SAP logo on Horizon shell background — keep the original colors,
+     just enforce vertical centering. */
+}
+
+.solution-banner {
+  padding: 0.25rem 0.25rem 0;
+}
+.solution-title {
+  margin: 0;
   font-family: var(--sapFontHeaderFamily, "72", "72full", Arial, sans-serif);
-  font-weight: 700;
-  font-size: 1rem;
-  color: var(--sapShellColor, #fff);
-  letter-spacing: 0.02em;
+  font-weight: 600;
+  font-size: 1.25rem;
+  line-height: 1.3;
+  color: var(--sapTitleColor, #1d2d3e);
+  letter-spacing: -0.01em;
+}
+.solution-subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--sapContent_LabelColor, #556b82);
 }
 
 .page {
