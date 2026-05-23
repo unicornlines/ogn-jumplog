@@ -1,11 +1,63 @@
 /* jumplog — overrides on top of fundamental-styles + sap_horizon theme.
-   Everything else (typography, colors, controls) comes from the SAP Fiori
-   design tokens loaded via the CDN <link>s in index.html. */
+   Most visual styling (controls, colors, spacing) comes from the SAP Fiori
+   design tokens loaded via the CDN <link>s in index.html. Below we wire up
+   the fonts that the fundamental-styles bundle references but doesn't ship,
+   then add overrides for the editable table experience. */
+
+/* ---- SAP fonts -------------------------------------------------------- */
+/* The "72" font family (SAP corporate font) hosted in
+   @sap-theming/theming-base-content. We load the four most-used cuts. */
+@font-face {
+  font-family: "72";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("https://unpkg.com/@sap-theming/theming-base-content@11.35.1/content/Base/baseLib/baseTheme/fonts/72-Regular.woff2") format("woff2"),
+       url("https://unpkg.com/@sap-theming/theming-base-content@11.35.1/content/Base/baseLib/baseTheme/fonts/72-Regular.woff") format("woff");
+}
+@font-face {
+  font-family: "72";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("https://unpkg.com/@sap-theming/theming-base-content@11.35.1/content/Base/baseLib/baseTheme/fonts/72-Bold.woff2") format("woff2"),
+       url("https://unpkg.com/@sap-theming/theming-base-content@11.35.1/content/Base/baseLib/baseTheme/fonts/72-Bold.woff") format("woff");
+}
+@font-face {
+  font-family: "72";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("https://unpkg.com/@sap-theming/theming-base-content@11.35.1/content/Base/baseLib/baseTheme/fonts/72-Italic.woff2") format("woff2");
+}
+@font-face {
+  font-family: "72Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("https://unpkg.com/@sap-theming/theming-base-content@11.35.1/content/Base/baseLib/baseTheme/fonts/72Mono-Regular.woff2") format("woff2");
+}
+/* SAP-icons glyph font — fundamental-styles defines the .sap-icon--*
+   classes with the right `content: "\eXXX"` codepoints but doesn't load
+   the font file itself. */
+@font-face {
+  font-family: "SAP-icons";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("https://unpkg.com/@sap-theming/theming-base-content@11.35.1/content/Base/baseLib/sap_horizon/fonts/SAP-icons.woff2") format("woff2"),
+       url("https://unpkg.com/@sap-theming/theming-base-content@11.35.1/content/Base/baseLib/sap_horizon/fonts/SAP-icons.woff") format("woff");
+}
 
 html, body {
   margin: 0;
   background: var(--sapBackgroundColor, #f5f6f7);
   color: var(--sapTextColor, #1d2d3e);
+  /* fundamental-styles components reference var(--sapFontFamily) but body
+     itself needs the family explicitly so headings/labels inherit the
+     SAP "72" font. */
+  font-family: var(--sapFontFamily, "72", "72full", -apple-system, "Segoe UI", Arial, sans-serif);
+  font-size: var(--sapFontSize, 0.875rem);
 }
 
 .brand-logo {
