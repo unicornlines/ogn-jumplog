@@ -64,52 +64,72 @@
     </div>
     <div class="fd-panel__content">
       <form id="meta-form" class="fd-form-layout" autocomplete="off">
+
+        <!-- Step 1: airport + date, then fetch the day's aircraft list -->
         <div class="form-grid">
           <div class="fd-form-item">
-            <label class="fd-form-label" for="callsign">Callsign <span class="fd-form-label__asterisk" aria-label="Required">*</span></label>
-            <input class="fd-input" type="text" id="callsign" name="callsign" required placeholder="D-EDGX">
-          </div>
-          <div class="fd-form-item">
-            <label class="fd-form-label" for="airport">Airport (ICAO) <span class="fd-form-label__asterisk">*</span></label>
+            <label class="fd-form-label" for="airport">Airport (ICAO) <span class="fd-form-label__asterisk" aria-label="Required">*</span></label>
             <input class="fd-input" type="text" id="airport" name="airport" required placeholder="EDGX">
           </div>
           <div class="fd-form-item">
             <label class="fd-form-label" for="date">Date <span class="fd-form-label__asterisk">*</span></label>
             <input class="fd-input" type="date" id="date" name="date" required>
           </div>
-          <div class="fd-form-item">
-            <label class="fd-form-label" for="flarm_id">FLARM ID <span class="muted">(hex, optional)</span></label>
-            <input class="fd-input" type="text" id="flarm_id" name="flarm_id" placeholder="3D0D47">
-          </div>
-          <div class="fd-form-item">
-            <label class="fd-form-label" for="pilot">Pilot</label>
-            <input class="fd-input" type="text" id="pilot" name="pilot" placeholder="Sophie Bertsch">
-          </div>
-          <div class="fd-form-item">
-            <label class="fd-form-label" for="operator">Operator</label>
-            <input class="fd-input" type="text" id="operator" name="operator" placeholder="FSC Mannheim">
-          </div>
-          <div class="fd-form-item">
-            <label class="fd-form-label" for="tz">Timezone</label>
-            <div class="fd-select">
-              <select class="fd-select__control" id="tz" name="tz">
-                <option value="local" selected>Local (airfield)</option>
-                <option value="utc">UTC</option>
-              </select>
-            </div>
-          </div>
         </div>
-        <div class="fd-bar fd-bar--footer">
+        <div class="fd-bar fd-bar--footer step-bar">
           <div class="fd-bar__right">
             <div class="fd-bar__element">
-              <button type="submit" id="fetch-btn" class="fd-button fd-button--emphasized"
-                      title="Initiate Real-Time Manifest Reconciliation via Open Glider Network™ RFC Adapter (transaction ZJL_FETCH)">
-                <i class="sap-icon--synchronize"></i>
-                <span>Fetch flights</span>
+              <button type="button" id="fetch-aircraft-btn" class="fd-button fd-button--emphasized"
+                      title="Query Open Glider Network™ for aircraft that departed from this airfield on this operational day (transaction ZJL_AC_LIST)">
+                <i class="sap-icon--search"></i>
+                <span>Fetch aircraft</span>
               </button>
             </div>
           </div>
         </div>
+
+        <!-- Step 2: pick aircraft + pilot/operator/tz, then fetch flights -->
+        <div id="step2" hidden>
+          <div class="form-grid">
+            <div class="fd-form-item form-item--full">
+              <label class="fd-form-label" for="aircraft">Aircraft <span class="fd-form-label__asterisk">*</span></label>
+              <div class="fd-select">
+                <select class="fd-select__control" id="aircraft" name="aircraft" required>
+                  <option value="">— Select aircraft —</option>
+                </select>
+              </div>
+            </div>
+            <div class="fd-form-item">
+              <label class="fd-form-label" for="pilot">Pilot</label>
+              <input class="fd-input" type="text" id="pilot" name="pilot" placeholder="Sophie Bertsch">
+            </div>
+            <div class="fd-form-item">
+              <label class="fd-form-label" for="operator">Operator</label>
+              <input class="fd-input" type="text" id="operator" name="operator" placeholder="FSC Mannheim">
+            </div>
+            <div class="fd-form-item">
+              <label class="fd-form-label" for="tz">Timezone</label>
+              <div class="fd-select">
+                <select class="fd-select__control" id="tz" name="tz">
+                  <option value="local" selected>Local (airfield)</option>
+                  <option value="utc">UTC</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="fd-bar fd-bar--footer step-bar">
+            <div class="fd-bar__right">
+              <div class="fd-bar__element">
+                <button type="button" id="fetch-btn" class="fd-button fd-button--emphasized" disabled
+                        title="Initiate Real-Time Manifest Reconciliation via Open Glider Network™ RFC Adapter (transaction ZJL_FETCH)">
+                  <i class="sap-icon--synchronize"></i>
+                  <span>Fetch flights</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </form>
       <div id="status" class="status-bar" role="status" aria-live="polite"></div>
     </div>
@@ -155,19 +175,6 @@
   </section>
 
 </main>
-
-<footer class="compliance-footer" role="contentinfo">
-  <div class="compliance-footer__line">
-    Powered by SAP HANA® Cloud · SAPUI5 1.117.0 · ABAP RESTful Application Programming Model
-    · Open Glider Network™ RFC Connector v0.1 · Hosted in Walldorf, Germany (eu-central-1)
-  </div>
-  <div class="compliance-footer__line">
-    TLS 1.3 · GDPR / DSGVO / CCPA Compliant · ISO 27001 · ISO 27017 · ISO 27018 · SOC 2 Type II · C5:2020 · BSI IT-Grundschutz
-  </div>
-  <div class="compliance-footer__line muted">
-    © 2026 SkyOps Aviation Holdings AG — All rights reserved. SAP, SAP HANA, SAP S/4HANA, Fiori and SmartForms are registered trademarks of SAP SE. This is a non-productive system. Session ID: Z-LIFT-PROD-2026-05-24-AX7F291E
-  </div>
-</footer>
 
 <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>

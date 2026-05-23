@@ -32,6 +32,34 @@ def create_app() -> Flask:
     def index() -> str:
         return render_template("index.html")
 
+    @app.post("/api/aircraft")
+    def api_aircraft():
+        """Return the list of aircraft (devices) OGN saw at airport/date.
+
+        Used by the first step of the web flow: the operator enters airport
+        and date, this endpoint returns every device that flew, and the UI
+        builds a dropdown to pick from."""
+        payload = request.get_json(force=True, silent=True) or {}
+        airport = (payload.get("airport") or "").strip()
+        date = (payload.get("date") or "").strip()
+
+        missing = [k for k, v in (("airport", airport), ("date", date)) if not v]
+        if missing:
+            return jsonify({"error": f"missing required fields: {', '.join(missing)}"}), 400
+
+        try:
+            data = fetch_flightbook(airport, date)
+        except OGNError as exc:
+            return jsonify({"error": str(exc)}), 502
+
+        aircraft = [asdict(s) for s in summarize_devices(data)]
+        return jsonify({
+            "airfield": (data.get("airfield") or {}).get("name"),
+            "device_count": len(data.get("devices") or []),
+            "flight_count": len(data.get("flights") or []),
+            "aircraft": aircraft,
+        })
+
     @app.post("/api/fetch")
     def api_fetch():
         payload = request.get_json(force=True, silent=True) or {}

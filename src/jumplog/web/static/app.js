@@ -13,16 +13,22 @@ const FIELDS = [
   { key: "remarks",    cls: "remarks" },
 ];
 
-const form        = document.getElementById("meta-form");
-const statusEl    = document.getElementById("status");
-const shellStatus = document.getElementById("shellbar-status");
-const fetchBtn    = document.getElementById("fetch-btn");
-const addRowBtn   = document.getElementById("add-row-btn");
-const renderBtn   = document.getElementById("render-btn");
-const tablePanel  = document.getElementById("table-panel");
-const tbody       = document.querySelector(".lift-table tbody");
+const form              = document.getElementById("meta-form");
+const statusEl          = document.getElementById("status");
+const shellStatus       = document.getElementById("shellbar-status");
+const fetchAircraftBtn  = document.getElementById("fetch-aircraft-btn");
+const fetchBtn          = document.getElementById("fetch-btn");
+const addRowBtn         = document.getElementById("add-row-btn");
+const renderBtn         = document.getElementById("render-btn");
+const tablePanel        = document.getElementById("table-panel");
+const tbody             = document.querySelector(".lift-table tbody");
+const step2             = document.getElementById("step2");
+const aircraftSelect    = document.getElementById("aircraft");
+const airportInput      = document.getElementById("airport");
+const dateInput         = document.getElementById("date");
+const tzSelect          = document.getElementById("tz");
 
-document.getElementById("date").value = new Date().toISOString().slice(0, 10);
+dateInput.value = new Date().toISOString().slice(0, 10);
 
 // ---------------------------------------------------------------------------
 // Status / form helpers
@@ -34,11 +40,13 @@ function setStatus(text, kind = "") {
   if (shellStatus) shellStatus.textContent = text ? text.split(/[.,]/)[0] : "Ready";
 }
 
-function formValues() {
-  const fd = new FormData(form);
-  const out = {};
-  for (const [k, v] of fd.entries()) out[k] = (v || "").trim();
-  return out;
+function selectedAircraft() {
+  const opt = aircraftSelect.options[aircraftSelect.selectedIndex];
+  if (!opt || !opt.value) return null;
+  return {
+    flarm_id: opt.value,
+    callsign: opt.dataset.callsign || opt.value,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -104,7 +112,6 @@ function insertRowAfter(tr) {
   tr.parentNode.insertBefore(newTr, tr.nextElementSibling);
   renumber();
   validate();
-  // focus the first input of the inserted row for fast entry
   newTr.querySelector("input.cell")?.focus();
 }
 
@@ -130,7 +137,6 @@ function renumber() {
   const rows = Array.from(tbody.children);
   rows.forEach((tr, i) => {
     tr.querySelector("td.row-num").textContent = String(i + 1);
-    // Disable move-up on first, move-down on last
     const tools = tr.querySelectorAll(".row-tool");
     if (tools[0]) tools[0].disabled = (i === 0);
     if (tools[1]) tools[1].disabled = (i === rows.length - 1);
@@ -154,7 +160,6 @@ function collectRows() {
 // ---------------------------------------------------------------------------
 
 function parseTimeMin(s) {
-  // returns: null (empty), NaN (invalid format), or minutes-since-midnight
   const t = (s || "").trim();
   if (!t) return null;
   const m = /^(\d{1,2}):(\d{2})$/.exec(t);
@@ -194,13 +199,11 @@ function validate() {
     if (Number.isNaN(to))  { markInvalid(inputs.to,  "Invalid time format — expected HH:MM"); rowBad = true; }
     if (Number.isNaN(ldg)) { markInvalid(inputs.ldg, "Invalid time format — expected HH:MM"); rowBad = true; }
 
-    // LDG must be >= TO (same day)
     if (typeof to === "number" && typeof ldg === "number" && ldg < to) {
       markInvalid(inputs.ldg, "Landing time is before take-off time");
       rowBad = true;
     }
 
-    // No overlap with the previous lift
     if (typeof to === "number" && typeof prevLdg === "number" && to < prevLdg) {
       markInvalid(inputs.to, "Take-off before previous lift's landing — lifts overlap");
       if (prevRow) {
@@ -211,7 +214,6 @@ function validate() {
       rowBad = true;
     }
 
-    // TIME field consistency check (warn only — non-blocking)
     const declared = parseInt((inputs.time_min.value || "").trim(), 10);
     if (typeof to === "number" && typeof ldg === "number" && ldg >= to && !Number.isNaN(declared)) {
       const computed = ldg - to;
@@ -228,7 +230,6 @@ function validate() {
     if (typeof ldg === "number") { prevLdg = ldg; prevRow = tr; }
   }
 
-  // Surface the issue count on the render button without blocking submission
   renderBtn.dataset.issues = String(issues);
   if (issues > 0) {
     renderBtn.title = `${issues} plausibility issue${issues === 1 ? "" : "s"} flagged — review the table before generating.`;
@@ -238,39 +239,100 @@ function validate() {
 }
 
 // ---------------------------------------------------------------------------
-// Hint chrome for no-match diagnostics
+// Step 1: fetch aircraft list
 // ---------------------------------------------------------------------------
 
-function renderCandidates(cands) {
-  if (!cands || !cands.length) return "";
-  const top = cands.slice(0, 5).map(c => {
-    const flag = c.jump_pattern ? " — jump pattern" : "";
-    const reg  = c.registration || "(unknown)";
-    return `<li><code>--flarm-id ${c.address}</code> &middot; ${reg} &middot; ${c.aircraft || "?"} &middot; ${c.flight_count} flights, peak ${c.peak_alt_ft} ft${flag}</li>`;
-  }).join("");
-  return `<div class="candidates">OGN saw these devices today — pick one and rerun:<ul>${top}</ul></div>`;
+function aircraftOptionLabel(a) {
+  const reg  = a.registration || "(unknown)";
+  const type = a.aircraft || "?";
+  const star = a.jump_pattern ? "  ★" : "";
+  return `${reg} · ${type} · ${a.flight_count} flights, peak ${a.peak_alt_ft} ft${star}`;
 }
 
+fetchAircraftBtn.addEventListener("click", async (e) => {
+  e.preventDefault();
+  const airport = airportInput.value.trim();
+  const date    = dateInput.value.trim();
+  if (!airport || !date) {
+    setStatus("Airport and date are required.", "error");
+    return;
+  }
+
+  setStatus("Fetching aircraft list from OGN…");
+  fetchAircraftBtn.disabled = true;
+  // Hide any prior step-2 / table state
+  step2.hidden = true;
+  fetchBtn.disabled = true;
+  tablePanel.hidden = true;
+  aircraftSelect.innerHTML = '<option value="">— Select aircraft —</option>';
+
+  try {
+    const resp = await fetch("/api/aircraft", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ airport, date }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      setStatus(data.error || `HTTP ${resp.status}`, "error");
+      return;
+    }
+    if (!data.aircraft || data.aircraft.length === 0) {
+      setStatus(`No aircraft tracked at ${data.airfield || airport} on ${date}.`, "warn");
+      return;
+    }
+    // Order: jump-pattern first, then by flight count desc (server already does this)
+    for (const a of data.aircraft) {
+      const opt = document.createElement("option");
+      opt.value = a.address;                              // flarm hex
+      opt.dataset.callsign = a.registration || a.address; // PDF header callsign
+      opt.textContent = aircraftOptionLabel(a);
+      aircraftSelect.appendChild(opt);
+    }
+    step2.hidden = false;
+    setStatus(`Found ${data.aircraft.length} aircraft at ${data.airfield || airport}. Select one to continue.`, "ok");
+  } catch (err) {
+    setStatus("Network error: " + err.message, "error");
+  } finally {
+    fetchAircraftBtn.disabled = false;
+  }
+});
+
+// Enable Fetch-flights only once an aircraft is selected
+aircraftSelect.addEventListener("change", () => {
+  fetchBtn.disabled = !selectedAircraft();
+});
+
 // ---------------------------------------------------------------------------
-// Network / event wiring
+// Step 2: fetch flights for the selected aircraft
 // ---------------------------------------------------------------------------
 
 fetchBtn.addEventListener("click", async (e) => {
   e.preventDefault();
-  if (!form.reportValidity()) return;
-  const vals = formValues();
-  setStatus("Fetching from OGN…");
+  const ac = selectedAircraft();
+  if (!ac) {
+    setStatus("Please select an aircraft first.", "error");
+    return;
+  }
+  const airport = airportInput.value.trim();
+  const date    = dateInput.value.trim();
+  const tz      = tzSelect.value;
+
+  setStatus("Fetching flights from OGN…");
   fetchBtn.disabled = true;
   try {
     const resp = await fetch("/api/fetch", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(vals),
+      body: JSON.stringify({
+        callsign: ac.callsign,
+        airport, date, tz,
+        flarm_id: ac.flarm_id,
+      }),
     });
     const data = await resp.json();
     if (!resp.ok) {
       setStatus(data.error || `HTTP ${resp.status}`, "error");
-      statusEl.insertAdjacentHTML("beforeend", renderCandidates(data.candidates));
       return;
     }
     tbody.innerHTML = "";
@@ -278,19 +340,31 @@ fetchBtn.addEventListener("click", async (e) => {
     renumber();
     validate();
     tablePanel.hidden = false;
-    setStatus(`Loaded ${data.lifts.length} lift(s) from ${data.airfield || vals.airport}.`, "ok");
+    setStatus(`Loaded ${data.lifts.length} lift(s) for ${ac.callsign}.`, "ok");
   } catch (err) {
     setStatus("Network error: " + err.message, "error");
   } finally {
-    fetchBtn.disabled = false;
+    fetchBtn.disabled = !selectedAircraft();
   }
 });
+
+// ---------------------------------------------------------------------------
+// Table panel actions
+// ---------------------------------------------------------------------------
 
 addRowBtn.addEventListener("click", () => appendRow({}));
 
 renderBtn.addEventListener("click", async () => {
-  const vals = formValues();
-  const body = { ...vals, lifts: collectRows() };
+  const ac = selectedAircraft();
+  const body = {
+    callsign: ac ? ac.callsign : "",
+    airport:  airportInput.value.trim(),
+    date:     dateInput.value.trim(),
+    pilot:    document.getElementById("pilot").value.trim(),
+    operator: document.getElementById("operator").value.trim(),
+    tz:       tzSelect.value,
+    lifts:    collectRows(),
+  };
   setStatus("Generating PDF…");
   renderBtn.disabled = true;
   try {
@@ -308,7 +382,7 @@ renderBtn.addEventListener("click", async () => {
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement("a");
     a.href = url;
-    a.download = `logsheet_${vals.airport}_${vals.callsign}_${vals.date}.pdf`;
+    a.download = `logsheet_${body.airport}_${body.callsign}_${body.date}.pdf`;
     document.body.appendChild(a);
     a.click();
     a.remove();

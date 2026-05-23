@@ -60,17 +60,6 @@ html, body {
   font-size: var(--sapFontSize, 0.875rem);
 }
 
-/* Body is a flex column so the compliance footer sits at the bottom of the
-   viewport on short pages and flows below content on long ones. */
-body {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  min-height: 100dvh;
-}
-body > header { flex: 0 0 auto; }
-body > main   { flex: 1 0 auto; }
-body > footer { flex: 0 0 auto; }
 
 .brand-logo-img {
   height: 26px;
@@ -143,26 +132,6 @@ body > footer { flex: 0 0 auto; }
   letter-spacing: 0.02em;
 }
 
-/* ---- Compliance footer ------------------------------------------------- */
-
-.compliance-footer {
-  margin: 2rem 2rem 1.5rem;
-  padding: 1rem 1.25rem;
-  background: var(--sapPageFooter_Background, #f5f6f7);
-  border: 1px solid var(--sapPageFooter_BorderColor, #d5dadd);
-  border-radius: 8px;
-  font-size: 0.6875rem;
-  line-height: 1.5;
-  color: var(--sapContent_LabelColor, #556b82);
-  text-align: center;
-}
-.compliance-footer__line + .compliance-footer__line { margin-top: 0.25rem; }
-.compliance-footer__line.muted {
-  font-size: 0.625rem;
-  color: var(--sapContent_DisabledTextColor, #889ab1);
-  margin-top: 0.5rem;
-}
-
 .solution-banner {
   padding: 0.25rem 0.25rem 0;
 }
@@ -196,6 +165,14 @@ body > footer { flex: 0 0 auto; }
   gap: 0.75rem 1rem;
   padding: 0.5rem 0 0.25rem;
 }
+.form-item--full { grid-column: 1 / -1; }
+
+.step-bar {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--sapGroup_ContentBorderColor, #d5dadd);
+}
+#step2 { margin-top: 0.75rem; }
 
 .muted {
   font-weight: normal;
@@ -272,6 +249,9 @@ body > footer { flex: 0 0 auto; }
 
 .lift-table input.cell {
   width: 100%;
+  /* Without border-box, width:100% + padding made the input wider than the
+     cell, so the invalid box-shadow drew past the cell border. */
+  box-sizing: border-box;
   border: none;
   background: transparent;
   font: inherit;
