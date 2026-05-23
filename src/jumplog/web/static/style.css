@@ -157,7 +157,7 @@ html, body {
 
 .lift-table .col-num     { width: 2.75rem; text-align: center; }
 .lift-table .col-remarks { min-width: 12rem; }
-.lift-table .col-actions { width: 2.5rem; text-align: center; }
+.lift-table .col-actions { width: 7rem; text-align: center; }
 
 .lift-table .fd-table__cell {
   padding: 0;
@@ -195,21 +195,45 @@ html, body {
   background: var(--sapList_Hover_Background, #f5f6f7);
 }
 
-.lift-table td.row-actions {
+/* ---- Per-row toolbar (move / insert / delete) -------------------------- */
+.lift-table td.row-tools {
+  padding: 0.125rem 0.25rem;
+  white-space: nowrap;
   text-align: center;
-  padding: 0;
 }
-.lift-table .row-del {
-  /* compact danger icon button matching fundamental's transparent variant */
+
+.lift-table .row-tool {
   background: transparent;
   border: none;
-  color: var(--sapNegativeColor, #b00);
   cursor: pointer;
-  padding: 0.25rem 0.5rem;
+  padding: 0.25rem 0.35rem;
   border-radius: 4px;
   font-size: 1rem;
   line-height: 1;
+  color: var(--sapButton_TextColor, #475e75);
 }
-.lift-table .row-del:hover {
+.lift-table .row-tool:hover:not(:disabled) {
+  background: var(--sapButton_Hover_Background, #eaecee);
+  color: var(--sapButton_Hover_TextColor, #1d2d3e);
+}
+.lift-table .row-tool:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.lift-table .row-tool--danger {
+  color: var(--sapNegativeColor, #b00);
+}
+.lift-table .row-tool--danger:hover {
   background: var(--sapButton_Negative_Hover_Background, rgba(187, 0, 0, 0.08));
+  color: var(--sapNegativeColor, #b00);
+}
+
+/* ---- Live plausibility highlighting ------------------------------------ */
+.lift-table input.cell.cell--invalid {
+  background: var(--sapField_InvalidBackground, #ffebef);
+  box-shadow: inset 0 0 0 2px var(--sapField_InvalidColor, #b00);
+}
+.lift-table tr.row--issue td.row-num {
+  color: var(--sapNegativeColor, #b00);
+  background: var(--sapField_InvalidBackground, #ffebef);
 }
