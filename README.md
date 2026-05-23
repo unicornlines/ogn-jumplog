@@ -52,6 +52,21 @@ jumplog --callsign N699SA --date 2026-05-23 --airport EDEH \
 | `--flarm-id` | DDB-bypass: explicit FLARM device address in hex |
 | `--allow-empty` | Render a blank sheet if no flights are found |
 
+## Web UI
+
+For interactive editing — useful when OGN data needs cleanup, when you want
+to add a lift OGN missed, or when you'd rather fill in pax counts in a
+browser than on a paper sheet — run the bundled Flask app:
+
+```sh
+jumplog-web --port 5050
+```
+
+Open <http://127.0.0.1:5050>, fill in callsign / airport / date (and
+optionally FLARM ID / pilot / operator / timezone), click **Fetch flights**,
+edit any cell in the lift table, add or delete rows, then click
+**Generate PDF**.
+
 ## Data sources
 
 - OGN Flightbook: `https://flightbook.glidernet.org/api/logbook/<ICAO>/<date>`

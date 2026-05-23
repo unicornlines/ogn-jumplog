@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>jumplog</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header>
+  <h1>jumplog</h1>
+  <p class="tagline">Pre-fill a jump-ops log sheet from OGN FLARM data.</p>
+</header>
+
+<section class="card">
+  <form id="meta-form" autocomplete="off">
+    <div class="grid">
+      <label>Callsign
+        <input name="callsign" required placeholder="D-EDGX">
+      </label>
+      <label>Airport (ICAO)
+        <input name="airport" required placeholder="EDGX">
+      </label>
+      <label>Date
+        <input name="date" type="date" required>
+      </label>
+      <label>FLARM ID <span class="hint">(hex, optional)</span>
+        <input name="flarm_id" placeholder="3D0D47">
+      </label>
+      <label>Pilot
+        <input name="pilot" placeholder="Sophie Bertsch">
+      </label>
+      <label>Operator
+        <input name="operator" placeholder="FSC Mannheim">
+      </label>
+      <label>Timezone
+        <select name="tz">
+          <option value="local" selected>Local (airfield)</option>
+          <option value="utc">UTC</option>
+        </select>
+      </label>
+    </div>
+    <div class="actions">
+      <button type="submit" id="fetch-btn">Fetch flights</button>
+      <button type="button" id="add-row-btn" hidden>+ Add lift</button>
+      <button type="button" id="render-btn" hidden>Generate PDF</button>
+    </div>
+  </form>
+  <div id="status" class="status"></div>
+</section>
+
+<section class="card" id="table-card" hidden>
+  <table id="lift-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Paxe</th>
+        <th>FL</th>
+        <th>TO</th>
+        <th>LDG</th>
+        <th>Min</th>
+        <th>CYC</th>
+        <th>Temp</th>
+        <th>Fuel gal</th>
+        <th>Refuel l</th>
+        <th>Remarks</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</section>
+
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

@@ -13,7 +13,7 @@ from jumplog.ogn import (
     fetch_flightbook,
     summarize_devices,
 )
-from jumplog.pdf import SheetMeta, render_sheet
+from jumplog.pdf import SheetMeta, lift_to_row, render_sheet
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -159,7 +159,8 @@ def main(argv: list[str] | None = None) -> int:
         operator=args.operator,
         tz_label=args.tz.upper(),
     )
-    render_sheet(args.out, meta, lifts)
+    rows = [lift_to_row(l) for l in lifts]
+    render_sheet(args.out, meta, rows)
     print(
         f"jumplog: wrote {args.out} ({len(lifts)} lift(s) for {args.callsign})",
         file=sys.stderr,

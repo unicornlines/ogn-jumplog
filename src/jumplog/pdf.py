@@ -24,7 +24,7 @@ from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 
-from jumplog.ogn import Lift, chunks
+from jumplog.ogn import Lift
 
 PAGE_W, PAGE_H = landscape(A4)            # (842, 595) pt
 MARGIN = 10 * mm
@@ -89,6 +89,56 @@ class SheetMeta:
     pilot: str = ""
     operator: str = ""
     tz_label: str = ""
+
+
+@dataclass
+class LiftRow:
+    """A single row on the lift table — every column is a string, ready to draw.
+
+    The renderer is OGN-agnostic: it just paints whatever string is in each
+    field. OGN-derived rows are produced by `lift_to_row`; web-app rows are
+    built from JSON form data."""
+
+    number: int
+    paxe: str = ""
+    fl: str = ""
+    to: str = ""
+    ldg: str = ""
+    time_min: str = ""
+    cyc: str = ""
+    temp: str = ""
+    fuel_used: str = ""
+    refuel: str = ""
+    remarks: str = ""
+
+
+def lift_to_row(lift: Lift, *, number: int | None = None) -> LiftRow:
+    """Convert an OGN-derived Lift into a renderable LiftRow.
+
+    Pre-fills the OGN-derivable columns and auto-flags out-of-band durations
+    in Remarks (the same plausibility hint the CLI used to do inline)."""
+    dur = lift.duration_minutes
+    return LiftRow(
+        number=number if number is not None else lift.number,
+        fl=str(lift.flight_level),
+        to=lift.takeoff.strftime("%H:%M"),
+        ldg=lift.landing.strftime("%H:%M"),
+        time_min=str(dur),
+        remarks="?" if dur < 3 or dur > 60 else "",
+    )
+
+
+def _chunks(seq: list, size: int) -> list[list]:
+    out: list[list] = []
+    bucket: list = []
+    for item in seq:
+        bucket.append(item)
+        if len(bucket) == size:
+            out.append(bucket)
+            bucket = []
+    if bucket:
+        out.append(bucket)
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -241,66 +291,59 @@ def _draw_column_headers(c: canvas.Canvas, y_top: float) -> None:
 
 
 def _draw_lift_rows(
-    c: canvas.Canvas, y_top: float, lifts: list[Lift], number_offset: int = 0
+    c: canvas.Canvas, y_top: float, rows: list[LiftRow], number_offset: int = 0
 ) -> None:
     """Grid of LIFTS_PER_PAGE rows. Pre-prints lift numbers in column 1 and
-    fills OGN-derived columns (Height, TO, LDG, TIME) for each available lift."""
+    fills whatever string fields are present on each LiftRow."""
 
     h = ROW_H
-    by_number = {lift.number: lift for lift in lifts}
+    by_number = {r.number: r for r in rows}
+
+    col_x = [MARGIN]
+    for w in COL_WIDTHS:
+        col_x.append(col_x[-1] + w)
+
+    # column index → LiftRow attribute name; col 0 (Lift number) is always
+    # the on-grid row index, drawn separately.
+    col_field = [
+        None, "paxe", "fl", "to", "ldg", "time_min",
+        "cyc", "temp", "fuel_used", "refuel", "remarks",
+    ]
 
     for i in range(LIFTS_PER_PAGE):
         y = y_top - (i + 1) * h
-        # vertical grid: draw each cell
         x = MARGIN
         for w in COL_WIDTHS:
             _rect(c, x, y, w, h)
             x += w
 
-        # lift number (col 0)
         lift_no = number_offset + i + 1
-        x_lift = MARGIN
         _text_centered(
-            c, x_lift, y, COL_WIDTHS[0], h, str(lift_no),
+            c, MARGIN, y, COL_WIDTHS[0], h, str(lift_no),
             font=FONT_VALUE, size=SIZE_LIFTNO,
         )
 
-        lift = by_number.get(lift_no)
-        if lift is None:
+        row = by_number.get(lift_no)
+        if row is None:
             continue
 
-        # column offsets
-        col_x = [MARGIN]
-        for w in COL_WIDTHS:
-            col_x.append(col_x[-1] + w)
-
-        # Height (Fl) — col 2
-        _text_centered(
-            c, col_x[2], y, COL_WIDTHS[2], h, str(lift.flight_level),
-            font=FONT_VALUE, size=SIZE_VALUE,
-        )
-        # TO — col 3
-        _text_centered(
-            c, col_x[3], y, COL_WIDTHS[3], h, lift.takeoff.strftime("%H:%M"),
-            font=FONT_VALUE, size=SIZE_VALUE,
-        )
-        # LDG — col 4
-        _text_centered(
-            c, col_x[4], y, COL_WIDTHS[4], h, lift.landing.strftime("%H:%M"),
-            font=FONT_VALUE, size=SIZE_VALUE,
-        )
-        # TIME — col 5
-        _text_centered(
-            c, col_x[5], y, COL_WIDTHS[5], h, str(lift.duration_minutes),
-            font=FONT_VALUE, size=SIZE_VALUE,
-        )
-        # Remarks — col 10: plausibility hint when out-of-band
-        dur = lift.duration_minutes
-        if dur < 3 or dur > 60:
-            _text_left(
-                c, col_x[10], y, COL_WIDTHS[10], h, "?",
-                font=FONT_VALUE, size=SIZE_VALUE,
-            )
+        for ci, field in enumerate(col_field):
+            if field is None:
+                continue
+            text = (getattr(row, field) or "").strip()
+            if not text:
+                continue
+            # Remarks left-aligned; everything else centered.
+            if field == "remarks":
+                _text_left(
+                    c, col_x[ci], y, COL_WIDTHS[ci], h, text,
+                    font=FONT_VALUE, size=SIZE_VALUE,
+                )
+            else:
+                _text_centered(
+                    c, col_x[ci], y, COL_WIDTHS[ci], h, text,
+                    font=FONT_VALUE, size=SIZE_VALUE,
+                )
 
 
 def _draw_footer_block1(c: canvas.Canvas, y_top: float, meta: SheetMeta) -> None:
@@ -443,7 +486,7 @@ def _draw_footer_block2(c: canvas.Canvas, y_top: float) -> None:
 
 
 def _render_page(
-    c: canvas.Canvas, meta: SheetMeta, lifts: list[Lift], number_offset: int
+    c: canvas.Canvas, meta: SheetMeta, rows: list[LiftRow], number_offset: int
 ) -> None:
     # vertical layout — start from the top, walk down
     gap = 6
@@ -469,28 +512,24 @@ def _render_page(
 
     _draw_header_strip(c, y_header_top, meta)
     _draw_column_headers(c, y_col_header_top)
-    _draw_lift_rows(c, y_after_col_header, lifts, number_offset=number_offset)
+    _draw_lift_rows(c, y_after_col_header, rows, number_offset=number_offset)
     _draw_footer_block1(c, y_footer1_top, meta)
     _draw_footer_block2(c, y_footer2_top)
 
 
-def render_sheet(out_path: str, meta: SheetMeta, lifts: list[Lift]) -> None:
-    c = canvas.Canvas(out_path, pagesize=landscape(A4))
+def render_sheet(
+    out_path_or_stream,
+    meta: SheetMeta,
+    rows: list[LiftRow],
+) -> None:
+    """Render the log sheet to a file path or any binary-writable stream."""
+    c = canvas.Canvas(out_path_or_stream, pagesize=landscape(A4))
     c.setTitle(f"Jump Log {meta.callsign} {meta.date}")
     c.setAuthor(meta.pilot or "jumplog")
 
-    pages = chunks(lifts, LIFTS_PER_PAGE) or [[]]
-    for page_idx, page_lifts in enumerate(pages):
-        # Re-number lifts on the page relative to page_idx for renderer's lookup
+    pages = _chunks(rows, LIFTS_PER_PAGE) or [[]]
+    for page_idx, page_rows in enumerate(pages):
         offset = page_idx * LIFTS_PER_PAGE
-        # The renderer matches by lift.number; reproject the numbers from
-        # 1..LIFTS_PER_PAGE so renderer pulls them with number_offset.
-        # We keep their original number untouched but pass a copy with adjusted
-        # numbers so the renderer hashes against the row numbers it draws.
-        # Simpler: pass them with their absolute number and supply offset = 0
-        # for the first page; offset = 15 for page 2 means rows print 16..30
-        # and renderer looks up lift.number = 16..30. Original numbers from
-        # extract_lifts() already match that, so we just pass through.
-        _render_page(c, meta, page_lifts, number_offset=offset)
+        _render_page(c, meta, page_rows, number_offset=offset)
         c.showPage()
     c.save()

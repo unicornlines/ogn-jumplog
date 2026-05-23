@@ -14,10 +14,15 @@ dependencies = [
     "reportlab>=4.0",
     "requests>=2.31",
     "python-dateutil>=2.8",
+    "flask>=3.0",
 ]
 
 [project.scripts]
 jumplog = "jumplog.cli:main"
+jumplog-web = "jumplog.web.app:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"jumplog.web" = ["templates/*.html", "static/*"]

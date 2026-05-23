@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Iterable
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import requests
@@ -210,14 +209,3 @@ def summarize_devices(payload: dict) -> list[DeviceSummary]:
     return out
 
 
-def chunks(seq: Iterable[Lift], size: int) -> list[list[Lift]]:
-    out: list[list[Lift]] = []
-    bucket: list[Lift] = []
-    for item in seq:
-        bucket.append(item)
-        if len(bucket) == size:
-            out.append(bucket)
-            bucket = []
-    if bucket:
-        out.append(bucket)
-    return out
