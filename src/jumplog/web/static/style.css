@@ -60,6 +60,18 @@ html, body {
   font-size: var(--sapFontSize, 0.875rem);
 }
 
+/* Body is a flex column so the compliance footer sits at the bottom of the
+   viewport on short pages and flows below content on long ones. */
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+body > header { flex: 0 0 auto; }
+body > main   { flex: 1 0 auto; }
+body > footer { flex: 0 0 auto; }
+
 .brand-logo-img {
   height: 26px;
   width: auto;
