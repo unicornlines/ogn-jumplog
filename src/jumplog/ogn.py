@@ -23,6 +23,11 @@ class AircraftNotFoundError(OGNError):
 
 METERS_TO_FEET = 3.28084
 
+# Tracks below this AGL ceiling are noise (taxi events, aborted lifts, ground
+# pickups by the receiver). Drop them before assigning lift numbers.
+MIN_LIFT_HEIGHT_FT = 200
+MIN_LIFT_HEIGHT_M = MIN_LIFT_HEIGHT_FT / METERS_TO_FEET
+
 
 @dataclass(frozen=True)
 class Lift:
@@ -137,6 +142,7 @@ def extract_lifts(
         if f.get("device") == dev_idx
         and f.get("start_tsp") is not None
         and f.get("stop_tsp") is not None
+        and (f.get("max_height") or 0) >= MIN_LIFT_HEIGHT_M
     ]
     relevant.sort(key=lambda f: f.get("start_tsp") or 0)
 
