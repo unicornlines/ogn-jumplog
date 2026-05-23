@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <title>jumplog</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Order matters: load the SAP semantic design tokens (--sapBackgroundColor,
+     --sapButton_Emphasized_Background, etc.) BEFORE fundamental-styles, because
+     fundamental-styles components only reference those tokens; the theme file
+     bundled with fundamental-styles itself does not define them. -->
+<link rel="stylesheet" href="https://unpkg.com/@sap-theming/theming-base-content@11.35.1/content/Base/baseLib/sap_horizon/css_variables.css">
 <link rel="stylesheet" href="https://unpkg.com/fundamental-styles@0.41.6/dist/fundamental-styles.css">
 <link rel="stylesheet" href="https://unpkg.com/fundamental-styles@0.41.6/dist/theming/sap_horizon.css">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
