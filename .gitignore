@@ -10,4 +10,5 @@ venv/
 .DS_Store
 *.pdf
 !docs/**/*.pdf
+!examples/**/*.pdf
 .cache/
