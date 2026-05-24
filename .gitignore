@@ -1,14 +1,38 @@
+# Python
 __pycache__/
 *.py[cod]
-*.egg-info/
 *.egg
+*.egg-info/
 build/
 dist/
 .venv/
 venv/
 .env
-.DS_Store
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Generated artifacts (PDFs render locally; keep curated examples)
 *.pdf
 !docs/**/*.pdf
 !examples/**/*.pdf
+
+# Caches
 .cache/
+
+# JS / Node (if anyone adds frontend tooling later)
+node_modules/
+
+# Editors / IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

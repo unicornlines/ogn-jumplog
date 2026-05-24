@@ -9,7 +9,7 @@ description = "Pre-fill a daily jump-operations log sheet PDF from OGN FLARM tra
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "Sophie Bertsch" }]
+authors = [{ name = "Unicornlines" }]
 dependencies = [
     "reportlab>=4.0",
     "requests>=2.31",

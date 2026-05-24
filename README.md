@@ -19,7 +19,7 @@ pip install -e .
 
 ```sh
 jumplog --callsign N699SA --date 2026-05-23 --airport EDEH \
-        --pilot "Sophie Bertsch" --operator "Skydive Walldorf" \
+        --pilot "Unicornlines" --operator "Skydive Walldorf" \
         --tz local --out logsheet_2026-05-23.pdf
 ```
 
